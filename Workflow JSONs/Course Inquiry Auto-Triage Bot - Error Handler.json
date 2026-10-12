@@ -1,0 +1,100 @@
+{
+  "name": "Course Inquiry Auto-Triage Bot - Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "690f46a4-2993-4e6a-a206-f0865dab4bb5",
+      "name": "Error_Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "notesInFlow": false,
+      "notes": "Set this workflow as the 'Error Workflow' in the main Course Inquiry Auto-Triage Bot's workflow settings."
+    },
+    {
+      "parameters": {
+        "jsCode": "const e = $input.first().json;\n\nconst workflow = e.workflow || {};\nconst execution = e.execution || {};\nconst error = execution.error || {};\n\n// Basic workflow information\nconst workflow_name = workflow.name || 'Unknown';\nconst workflow_id = workflow.id || 'Unknown';\nconst execution_id = execution.id || 'Unknown';\n\n// Failed node information\nconst failed_node =\n  execution.lastNodeExecuted ||\n  execution.node?.name ||\n  'Unknown';\n\n// Error details\nconst error_message =\n  error.message ||\n  error.description ||\n  'Unknown error';\n\nconst error_name =\n  error.name ||\n  'Unknown';\n\nconst error_stack =\n  error.stack ||\n  '';\n\n// Execution timing\nconst timestamp = new Date().toISOString();\n\nconst execution_mode =\n  execution.mode ||\n  'Unknown';\n\n// Environment\nconst environment =\n  workflow.active === true\n    ? 'Production'\n    : 'Development';\n\nreturn [\n  {\n    json: {\n      workflow_name,\n      workflow_id,\n      execution_id,\n      failed_node,\n      error_name,\n      error_message,\n      error_stack,\n      execution_mode,\n      environment,\n      timestamp\n    }\n  }\n];"
+      },
+      "id": "1bf5f567-4d80-47dd-b8e7-2d509c1723f5",
+      "name": "Extract_Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "notesInFlow": false,
+      "notes": "Deliberately does NOT forward the original request body, headers, or credentials — only metadata about the failure. Never include API keys or sensitive request bodies in the alert."
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0C42F8G9L5",
+          "mode": "list",
+          "cachedResultName": "course-triage-errors"
+        },
+        "text": "=🚨 COURSE TRIAGE WORKFLOW ERROR\n\nWorkflow:\n{{$json.workflow_name}}\n\nNode:\n{{$json.failed_node}}\n\nExecution:\n{{$json.execution_id}}\n\nError:\n{{$json.error_message}}\n\nEnvironment:\n{{$json.environment}}\n\nTimestamp:\n{{$json.timestamp}}",
+        "otherOptions": {}
+      },
+      "id": "77816f91-7c38-4cab-b653-a39c7227348d",
+      "name": "Error_Slack_Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        0
+      ],
+      "webhookId": "fe6b8f05-3940-4bd9-a695-c3d4c8f59023",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "5SP3XFZQOBe6Bdcp",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error_Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract_Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract_Context": {
+      "main": [
+        [
+          {
+            "node": "Error_Slack_Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "df9340dd-0959-4de7-b5cc-2eb0dade123b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bfdd4ea627c64fca3732b05cf5c9e595fb0ac9b5c5ce287d411bd539db4ead42"
+  },
+  "nodeGroups": [],
+  "id": "dYnsD9zYWVfRG13y",
+  "tags": []
+}
